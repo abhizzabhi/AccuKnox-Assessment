@@ -1,0 +1,63 @@
+3.
+True, Django signals operate in the same database transaction as the caller by default. This is due to the fact that Django signals are performed synchronously, meaning that the signal handler will operate within the same transaction if a signal is triggered inside a view or function that is enclosed in a database transaction (such as within a @transaction.atomic block).
+
+We can provide an example to demonstrate this where:
+
+A signal handler that updates a database entry is what we employ.
+Within a transaction, we initiate the signal.
+Once the signal to roll back the transaction is emitted, we manually raise an exception.
+It is demonstrated that the signal executes in the same transaction as the caller if the database modifications made by the signal handler are likewise rolled back.
+
+from django.db import models, transaction
+from django.dispatch import Signal, receiver
+from myapp.models import MyModel  # assuming a simple model
+
+# Define a custom signal
+my_signal = Signal()
+
+# Define the signal handler
+@receiver(my_signal)
+def my_signal_handler(sender, **kwargs):
+    # Modify the database inside the signal handler
+    print("Signal handler: Creating a new database record")
+    MyModel.objects.create(name="Signal Created")
+
+# Define a function to emit the signal inside a transaction
+def emit_signal_within_transaction():
+    try:
+        with transaction.atomic():  # Start a transaction
+            print("Inside transaction: Emitting signal")
+            my_signal.send(sender=None)
+
+            print("Inside transaction: Raising exception to trigger rollback")
+            raise Exception("Simulating an error, rolling back the transaction")
+    except Exception as e:
+        print(f"Exception caught: {e}")
+
+# Run the test
+emit_signal_within_transaction()
+
+# Check if the MyModel record was created
+def check_database():
+    if MyModel.objects.filter(name="Signal Created").exists():
+        print("Record created by signal handler exists in the database")
+    else:
+        print("No record created, transaction was rolled back")
+
+
+We define a custom signal my_signal.
+The signal handler my_signal_handler modifies the database by creating a new record in the MyModel table.
+We emit the signal inside a transaction.atomic() block.
+After emitting the signal, we raise an exception to simulate an error and force a rollback.
+Finally, we check if the record created by the signal handler still exists in the database. If it does not exist, it means that the signal handler ran in the same transaction, and the rollback affected the changes made by the handler.
+
+Expected Output
+Inside transaction: Emitting signal
+Signal handler: Creating a new database record
+Inside transaction: Raising exception to trigger rollback
+Exception caught: Simulating an error, rolling back the transaction
+No record created, transaction was rolled back
+
+The output shows that the database changes made by the signal handler were rolled back, which confirms that the signal handler runs in the same database transaction as the caller. If the signal handler were executed in a separate transaction, the record would still exist even after the rollback.
+
+

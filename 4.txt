@@ -1,0 +1,25 @@
+4.
+class Rectangle:
+    def __init__(self, length: int, width: int):
+        self.length = length
+        self.width = width
+
+    def __iter__(self):
+        # Create an iterator that first yields the length then the width
+        yield {'length': self.length}
+        yield {'width': self.width}
+
+
+# Example usage
+rect = Rectangle(10, 5)
+
+# Iterating over the rectangle instance
+for dimension in rect:
+    print(dimension)
+
+
+The __init__ method initializes the Rectangle instance with length and width.
+The __iter__ method returns a generator that yields two dictionaries: first with the length and then with the width.
+Expected Output
+{'length': 10}
+{'width': 5}

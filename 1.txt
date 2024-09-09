@@ -1,0 +1,43 @@
+Django signals are processed synchronously by default. This implies that upon the emission of a signal, the associated signal handler will launch instantly and halt the execution until it is completed.
+
+We can make a straightforward example to show this, in which a signal handler records how long it takes to run. The function would run in a different thread or process and the handler's execution wouldn't halt the main thread if the signal were asynchronous.
+
+import time
+from django.dispatch import Signal, receiver
+
+# Define a custom signal
+my_signal = Signal()
+
+# Define the signal handler
+@receiver(my_signal)
+def my_signal_handler(sender, **kwargs):
+    print("Signal handler started")
+    time.sleep(3)  # Simulate a time-consuming operation
+    print("Signal handler finished")
+
+# Emit the signal and measure time
+def emit_signal():
+    start_time = time.time()
+    print("Emitting signal...")
+    my_signal.send(sender=None)
+    end_time = time.time()
+    print(f"Signal emitted and handler finished in {end_time - start_time:.2f} seconds")
+
+# Run the test
+emit_signal()
+
+We define a custom signal my_signal.
+We create a signal handler my_signal_handler which simulates a time-consuming operation with time.sleep(3).
+We measure the time before and after emitting the signal using time.time().
+
+Expected output
+Emitting signal...
+Signal handler started
+Signal handler finished
+Signal emitted and handler finished in 3.00 seconds
+
+Since the time taken for the signal emission and handler completion is approximately 3 seconds, it proves that the signal handler is executed synchronously. If Django signals were asynchronous by default, the time would be close to 0 seconds, as the handler would run in a separate thread/process and not block the main thread.
+
+
+
+

@@ -1,0 +1,35 @@
+2.
+Django signals are processed synchronously by default. This implies that upon the emission of a signal, the associated signal handler will launch instantly and halt the execution until it is completed.
+
+We can make a straightforward example to show this, in which a signal handler records how long it takes to run. The function would run in a different thread or process and the handler's execution wouldn't halt the main thread if the signal were asynchronous.
+
+import threading
+from django.dispatch import Signal, receiver
+
+# Define a custom signal
+my_signal = Signal()
+
+# Define the signal handler
+@receiver(my_signal)
+def my_signal_handler(sender, **kwargs):
+    print(f"Signal handler is running in thread: {threading.current_thread().name}")
+
+# Emit the signal and check the thread ID
+def emit_signal():
+    print(f"Emitting signal in thread: {threading.current_thread().name}")
+    my_signal.send(sender=None)
+
+# Run the test
+emit_signal()
+
+We define a custom signal my_signal.
+We create a signal handler my_signal_handler that prints the name of the thread it's running in.
+We also print the thread name in the emit_signal function to compare the thread ID of the caller with the handler.
+
+Expected output
+Emitting signal in thread: MainThread
+Signal handler is running in thread: MainThread
+
+
+The output shows that both the signal emitter and the handler run in the same thread (MainThread). This confirms that Django signals execute in the same thread as the caller. If signals were run in a separate thread, the thread name would be different in the signal handler output.
+
